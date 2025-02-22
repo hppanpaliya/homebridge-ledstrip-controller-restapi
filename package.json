@@ -2,7 +2,7 @@
   "name": "homebridge-ledstrip-controller-restapi",
   "displayName": "homebridge-ledstrip-controller-restapi",
   "type": "module",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": true,
   "description": "A Plugin to control LED strip from rest API as backend is using fastAPI and Bleak to communicate with the bluetooth device.",
   "author": "Harshal Panpaliya",
