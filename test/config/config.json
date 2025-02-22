@@ -1,0 +1,21 @@
+{
+    "bridge": {
+        "name": "Homebridge Test",
+        "username": "CC:22:3D:E3:CE:30",
+        "port": 51826,
+        "pin": "031-45-154"
+    },
+    "platforms": [
+        {
+            "name": "LED Strip Controller",
+            "platform": "LEDStripController",
+            "devices": [
+                {
+                    "name": "Test LED Strip",
+                    "deviceAddress": "74D41BB8-7A4D-E9E9-49DE-15392E17EBE1",
+                    "apiUrl": "ws://192.168.0.197:8080/ws"
+                }
+            ]
+        }
+    ]
+}

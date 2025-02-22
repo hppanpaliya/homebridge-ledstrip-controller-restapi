@@ -1,0 +1,45 @@
+{
+  "pluginAlias": "LEDStripController",
+  "pluginType": "platform",
+  "singular": true,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "required": true,
+        "default": "LED Strip Controller"
+      },
+      "devices": {
+        "type": "array",
+        "title": "LED Strips",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": "string",
+              "required": true,
+              "description": "Name of the LED strip"
+            },
+            "deviceAddress": {
+              "title": "Device Address",
+              "type": "string",
+              "required": true,
+              "description": "BLE address of the LED strip",
+              "placeholder": "74D41BB8-7A4D-E9E9-49DE-15392E17EBE1"
+            },
+            "apiUrl": {
+              "title": "API WebSocket URL",
+              "type": "string",
+              "required": true,
+              "description": "WebSocket URL for the LED controller API",
+              "placeholder": "ws://localhost:8000/ws"
+            }
+          }
+        }
+      }
+    }
+  }
+}
