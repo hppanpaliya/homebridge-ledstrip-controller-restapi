@@ -2,7 +2,7 @@
   "name": "homebridge-ledstrip-controller-restapi",
   "displayName": "homebridge-ledstrip-controller-restapi",
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "A short description about what your plugin does.",
   "author": "Your Name",
