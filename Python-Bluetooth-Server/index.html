@@ -10,7 +10,7 @@
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #f0f0f0;
+            background-color: #f5f5f5;
         }
         .container {
             background-color: white;
@@ -23,14 +23,17 @@
             padding: 15px;
             border: 1px solid #ddd;
             border-radius: 5px;
+            background-color: #fafafa;
         }
         .control-group h2 {
             margin-top: 0;
+            color: #333;
         }
         .slider-container {
             display: flex;
             align-items: center;
             gap: 10px;
+            margin-bottom: 10px;
         }
         input[type="range"] {
             flex-grow: 1;
@@ -39,22 +42,39 @@
             display: flex;
             gap: 10px;
             align-items: center;
+            margin-bottom: 10px;
         }
         button {
-            padding: 10px 20px;
+            padding: 10px 15px;
             border: none;
             border-radius: 5px;
             background-color: #007bff;
             color: white;
             cursor: pointer;
+            transition: background-color 0.2s;
+            margin-right: 5px;
+            margin-bottom: 5px;
         }
         button:hover {
             background-color: #0056b3;
+        }
+        button.danger {
+            background-color: #dc3545;
+        }
+        button.danger:hover {
+            background-color: #bd2130;
+        }
+        button.success {
+            background-color: #28a745;
+        }
+        button.success:hover {
+            background-color: #218838;
         }
         #status {
             margin-top: 20px;
             padding: 10px;
             border-radius: 5px;
+            min-height: 20px;
         }
         .success {
             background-color: #d4edda;
@@ -64,29 +84,94 @@
             background-color: #f8d7da;
             color: #721c24;
         }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        #color-preview {
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .header {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .connection-status {
+            font-size: 14px;
+            padding: 5px 10px;
+            border-radius: 15px;
+            display: inline-block;
+        }
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .connecting {
+            background-color: #fff3cd;
+            color: #856404;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>LED Strip Controller</h1>
+        <div class="header">
+            <h1>LED Strip Controller</h1>
+            <div id="connection-status" class="connection-status disconnected">Disconnected</div>
+        </div>
         
         <div class="control-group">
-            <h2>Connection</h2>
-            <input type="text" id="deviceAddress" placeholder="Device Address" value="08:14:13:05:3B:A0">
+            <h2>Device Address</h2>
+            <div class="slider-container">
+                <input type="text" id="deviceAddress" placeholder="Device Address" value="08:14:13:05:3B:A0" style="flex-grow: 1; padding: 5px;">
+            </div>
         </div>
 
         <div class="control-group">
             <h2>Power Control</h2>
-            <button onclick="sendCommand('power', true)">Turn On</button>
-            <button onclick="sendCommand('power', false)">Turn Off</button>
+            <div class="controls">
+                <button onclick="sendPowerCommand(true)" class="success">Turn On</button>
+                <button onclick="sendPowerCommand(false)" class="danger">Turn Off</button>
+            </div>
         </div>
 
         <div class="control-group">
             <h2>Color Control</h2>
             <div class="color-picker">
-                <label>Color: </label>
-                <input type="color" id="colorPicker" onchange="updateColor()">
-                <button onclick="sendColorCommand()">Set Color</button>
+                <label for="colorPicker">Color: </label>
+                <input type="color" id="colorPicker" value="#ff0000">
+                <div id="color-preview" style="background-color: #ff0000;"></div>
+            </div>
+            <div class="slider-container">
+                <label>Red:</label>
+                <input type="range" id="red" min="0" max="255" value="255" class="color-slider">
+                <span id="redValue">255</span>
+            </div>
+            <div class="slider-container">
+                <label>Green:</label>
+                <input type="range" id="green" min="0" max="255" value="0" class="color-slider">
+                <span id="greenValue">0</span>
+            </div>
+            <div class="slider-container">
+                <label>Blue:</label>
+                <input type="range" id="blue" min="0" max="255" value="0" class="color-slider">
+                <span id="blueValue">0</span>
             </div>
         </div>
 
@@ -94,131 +179,474 @@
             <h2>Brightness Control</h2>
             <div class="slider-container">
                 <label>Brightness:</label>
-                <input type="range" id="brightness" min="0" max="255" value="128">
+                <input type="range" id="brightness" min="0" max="255" value="128" class="control-slider">
                 <span id="brightnessValue">128</span>
             </div>
             <div class="slider-container">
                 <label>Intensity:</label>
-                <input type="range" id="intensity" min="0" max="15" value="7">
+                <input type="range" id="intensity" min="0" max="15" value="7" class="control-slider">
                 <span id="intensityValue">7</span>
             </div>
-            <button onclick="sendBrightnessCommand()">Set Brightness</button>
         </div>
 
         <div class="control-group">
             <h2>Music Mode</h2>
-            <select id="musicMode">
-                <option value="1">Classic Mode</option>
-                <option value="2">Vocal Mode</option>
-                <option value="3">Pop Mode</option>
-                <option value="4">Rock Mode</option>
-            </select>
-            <button onclick="sendMusicModeCommand()">Set Mode</button>
+            <div class="slider-container">
+                <select id="musicMode" style="padding: 5px; flex-grow: 1;">
+                    <option value="1">Classic Mode</option>
+                    <option value="2">Vocal Mode</option>
+                    <option value="3">Pop Mode</option>
+                    <option value="4">Rock Mode</option>
+                </select>
+            </div>
         </div>
 
         <div class="control-group">
             <h2>Microphone Sensitivity</h2>
             <div class="slider-container">
                 <label>Sensitivity:</label>
-                <input type="range" id="sensitivity" min="41" max="255" value="148">
+                <input type="range" id="sensitivity" min="41" max="255" value="148" class="control-slider">
                 <span id="sensitivityValue">148</span>
             </div>
             <div class="slider-container">
                 <label>Scaling:</label>
-                <input type="range" id="scaling" min="0" max="15" value="7">
+                <input type="range" id="scaling" min="0" max="15" value="7" class="control-slider">
                 <span id="scalingValue">7</span>
             </div>
-            <button onclick="sendMicSensitivityCommand()">Set Sensitivity</button>
         </div>
 
-        <div id="status"></div>
+        <div id="status" class="info">Ready</div>
     </div>
 
     <script>
-        let ws;
+        // WebSocket connection
+        let socket = null;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+        let reconnectTimeout = null;
         
-        function connect() {
-            ws = new WebSocket(`ws://${window.location.host}/ws`);
+        // Debounce function to limit how often a function can be called
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                const context = this;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), wait);
+            };
+        }
+
+        // Initialize WebSocket connection
+        function initWebSocket() {
+            // Close existing connection if any
+            if (socket) {
+                socket.close();
+            }
+
+            updateConnectionStatus('connecting');
             
-            ws.onmessage = function(event) {
-                const response = JSON.parse(event.data);
-                const status = document.getElementById('status');
-                status.textContent = response.message;
-                status.className = response.status === 'success' ? 'success' : 'error';
+            // Create WebSocket connection
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            socket = new WebSocket(wsUrl);
+            
+            socket.onopen = function(e) {
+                console.log("WebSocket connection established");
+                updateConnectionStatus('connected');
+                updateStatus("Connected to server", "success");
+                reconnectAttempts = 0; // Reset reconnect attempts on successful connection
+                
+                // Check device status when WebSocket is connected
+                const deviceAddress = getDeviceAddress();
+                if (deviceAddress) {
+                    sendWebSocketMessage({
+                        action: 'get_status',
+                        device_address: deviceAddress
+                    });
+                }
             };
-
-            ws.onclose = function() {
-                setTimeout(connect, 1000);
+            
+            socket.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.type === "ping") {
+                        // Received a ping, just ignore it
+                        return;
+                    }
+                    
+                    if (data.type === "state_update") {
+                        // Update UI based on received state
+                        if (data.device_address === getDeviceAddress()) {
+                            updateUIFromState(data.state);
+                            updateStatus(`State updated from server`, "info");
+                        }
+                    } else if (data.status === "success") {
+                        // Command was successful
+                        updateStatus(data.message || "Command successful", "success");
+                        if (data.state) {
+                            updateUIFromState(data.state);
+                        }
+                    } else if (data.status === "error") {
+                        // Error occurred
+                        updateStatus(data.message || "Command failed", "error");
+                    } else if (data.status === "retry") {
+                        // Retry notification
+                        updateStatus(data.message || "Please retry the command", "warning");
+                    }
+                } catch (error) {
+                    console.error("Error processing WebSocket message:", error);
+                    updateStatus("Error processing server message", "error");
+                }
+            };
+            
+            socket.onclose = function(event) {
+                if (event.wasClean) {
+                    console.log(`WebSocket connection closed cleanly, code=${event.code}, reason=${event.reason}`);
+                    updateStatus("Disconnected from server", "warning");
+                } else {
+                    // Connection died
+                    console.error('WebSocket connection died');
+                    updateStatus("Connection lost, attempting to reconnect...", "error");
+                    attemptReconnect();
+                }
+                updateConnectionStatus('disconnected');
+            };
+            
+            socket.onerror = function(error) {
+                console.error(`WebSocket error: ${error}`);
+                updateStatus("WebSocket error occurred", "error");
+                updateConnectionStatus('disconnected');
             };
         }
 
-        connect();
-
-        function getDeviceAddress() {
-            return document.getElementById('deviceAddress').value;
-        }
-
-        function sendCommand(action, state) {
-            if (ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                    device_address: getDeviceAddress(),
-                    action: action,
-                    state: state ? 'on' : 'off'
-                }));
+        function attemptReconnect() {
+            if (reconnectAttempts < maxReconnectAttempts) {
+                reconnectAttempts++;
+                const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 10000); // Exponential backoff with 10s cap
+                
+                updateStatus(`Connection lost. Reconnecting in ${delay/1000} seconds... (Attempt ${reconnectAttempts}/${maxReconnectAttempts})`, "warning");
+                
+                clearTimeout(reconnectTimeout);
+                reconnectTimeout = setTimeout(() => {
+                    updateStatus("Attempting to reconnect...", "info");
+                    initWebSocket();
+                }, delay);
+            } else {
+                updateStatus("Failed to reconnect after multiple attempts. Please refresh the page.", "error");
             }
         }
 
-        function updateColor() {
-            const color = document.getElementById('colorPicker').value;
-            document.getElementById('colorPicker').style.backgroundColor = color;
+        function updateConnectionStatus(status) {
+            const element = document.getElementById('connection-status');
+            element.className = `connection-status ${status}`;
+            
+            switch(status) {
+                case 'connected':
+                    element.textContent = 'Connected';
+                    break;
+                case 'disconnected':
+                    element.textContent = 'Disconnected';
+                    break;
+                case 'connecting':
+                    element.textContent = 'Connecting...';
+                    break;
+            }
         }
 
-        function sendColorCommand() {
-            const color = document.getElementById('colorPicker').value;
-            const rgb = {
-                red: parseInt(color.substr(1,2), 16),
-                green: parseInt(color.substr(3,2), 16),
-                blue: parseInt(color.substr(5,2), 16)
-            };
+        // Send a message via WebSocket
+        function sendWebSocketMessage(data) {
+            if (!socket || socket.readyState !== WebSocket.OPEN) {
+                updateStatus("Not connected to server", "error");
+                initWebSocket(); // Try to reconnect
+                return false;
+            }
             
-            ws.send(JSON.stringify({
-                device_address: getDeviceAddress(),
+            try {
+                socket.send(JSON.stringify(data));
+                return true;
+            } catch (error) {
+                console.error("Error sending WebSocket message:", error);
+                updateStatus("Error sending command", "error");
+                return false;
+            }
+        }
+
+        function getDeviceAddress() {
+            return document.getElementById('deviceAddress').value.trim();
+        }
+
+        function updateStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = type || 'info';
+        }
+
+        function sendPowerCommand(isOn) {
+            const deviceAddress = getDeviceAddress();
+            if (!deviceAddress) {
+                updateStatus('Please enter a device address', 'error');
+                return;
+            }
+            
+            sendWebSocketMessage({
+                action: 'power',
+                device_address: deviceAddress,
+                state: isOn ? 'on' : 'off'
+            });
+        }
+
+        function updateColorPreview() {
+            const colorPicker = document.getElementById('colorPicker');
+            const colorPreview = document.getElementById('color-preview');
+            const color = colorPicker.value;
+            
+            colorPreview.style.backgroundColor = color;
+            
+            // Update RGB sliders without triggering their change events
+            const r = parseInt(color.substr(1, 2), 16);
+            const g = parseInt(color.substr(3, 2), 16);
+            const b = parseInt(color.substr(5, 2), 16);
+            
+            // Update slider values and text displays
+            document.getElementById('red').value = r;
+            document.getElementById('green').value = g;
+            document.getElementById('blue').value = b;
+            document.getElementById('redValue').textContent = r;
+            document.getElementById('greenValue').textContent = g;
+            document.getElementById('blueValue').textContent = b;
+            
+            // Send the color command
+            sendColorCommand();
+        }
+
+        function updateColorFromSliders() {
+            const r = document.getElementById('red').value;
+            const g = document.getElementById('green').value;
+            const b = document.getElementById('blue').value;
+            
+            document.getElementById('redValue').textContent = r;
+            document.getElementById('greenValue').textContent = g;
+            document.getElementById('blueValue').textContent = b;
+            
+            const hexColor = '#' + 
+                parseInt(r).toString(16).padStart(2, '0') + 
+                parseInt(g).toString(16).padStart(2, '0') + 
+                parseInt(b).toString(16).padStart(2, '0');
+            
+            // Update color picker and preview
+            document.getElementById('colorPicker').value = hexColor;
+            document.getElementById('color-preview').style.backgroundColor = hexColor;
+        }
+
+        // Debounced version of color command
+        const debouncedColorCommand = debounce(sendColorCommand, 300);
+
+        function sendColorCommand() {
+            const deviceAddress = getDeviceAddress();
+            if (!deviceAddress) {
+                updateStatus('Please enter a device address', 'error');
+                return;
+            }
+            
+            const r = parseInt(document.getElementById('red').value);
+            const g = parseInt(document.getElementById('green').value);
+            const b = parseInt(document.getElementById('blue').value);
+            
+            sendWebSocketMessage({
                 action: 'color',
-                ...rgb
-            }));
+                device_address: deviceAddress,
+                red: r,
+                green: g,
+                blue: b
+            });
         }
 
         function sendBrightnessCommand() {
-            ws.send(JSON.stringify({
-                device_address: getDeviceAddress(),
+            const deviceAddress = getDeviceAddress();
+            if (!deviceAddress) {
+                updateStatus('Please enter a device address', 'error');
+                return;
+            }
+            
+            const brightness = parseInt(document.getElementById('brightness').value);
+            const intensity = parseInt(document.getElementById('intensity').value);
+            
+            sendWebSocketMessage({
                 action: 'brightness',
-                brightness: parseInt(document.getElementById('brightness').value),
-                intensity: parseInt(document.getElementById('intensity').value)
-            }));
+                device_address: deviceAddress,
+                brightness: brightness,
+                intensity: intensity
+            });
         }
 
         function sendMusicModeCommand() {
-            ws.send(JSON.stringify({
-                device_address: getDeviceAddress(),
+            const deviceAddress = getDeviceAddress();
+            if (!deviceAddress) {
+                updateStatus('Please enter a device address', 'error');
+                return;
+            }
+            
+            const mode = parseInt(document.getElementById('musicMode').value);
+            
+            sendWebSocketMessage({
                 action: 'music_mode',
-                mode: parseInt(document.getElementById('musicMode').value)
-            }));
+                device_address: deviceAddress,
+                mode: mode
+            });
         }
 
         function sendMicSensitivityCommand() {
-            ws.send(JSON.stringify({
-                device_address: getDeviceAddress(),
+            const deviceAddress = getDeviceAddress();
+            if (!deviceAddress) {
+                updateStatus('Please enter a device address', 'error');
+                return;
+            }
+            
+            const sensitivity = parseInt(document.getElementById('sensitivity').value);
+            const scaling = parseInt(document.getElementById('scaling').value);
+            
+            sendWebSocketMessage({
                 action: 'mic_sensitivity',
-                sensitivity: parseInt(document.getElementById('sensitivity').value),
-                scaling: parseInt(document.getElementById('scaling').value)
-            }));
+                device_address: deviceAddress,
+                sensitivity: sensitivity,
+                scaling: scaling
+            });
         }
 
-        // Update value displays for sliders
-        ['brightness', 'intensity', 'sensitivity', 'scaling'].forEach(id => {
-            const slider = document.getElementById(id);
-            const display = document.getElementById(id + 'Value');
-            slider.oninput = () => display.textContent = slider.value;
+        function updateUIFromState(state) {
+            if (!state) return;
+            
+            // Flag to prevent triggering changes while updating UI
+            window.updatingUI = true;
+            
+            // Update color
+            if (state.color) {
+                const { red, green, blue } = state.color;
+                
+                document.getElementById('red').value = red;
+                document.getElementById('green').value = green;
+                document.getElementById('blue').value = blue;
+                document.getElementById('redValue').textContent = red;
+                document.getElementById('greenValue').textContent = green;
+                document.getElementById('blueValue').textContent = blue;
+                
+                const hexColor = '#' + 
+                    parseInt(red).toString(16).padStart(2, '0') + 
+                    parseInt(green).toString(16).padStart(2, '0') + 
+                    parseInt(blue).toString(16).padStart(2, '0');
+                
+                document.getElementById('colorPicker').value = hexColor;
+                document.getElementById('color-preview').style.backgroundColor = hexColor;
+            }
+            
+            // Update brightness and intensity
+            if (state.brightness !== undefined) {
+                document.getElementById('brightness').value = state.brightness;
+                document.getElementById('brightnessValue').textContent = state.brightness;
+            }
+            
+            if (state.intensity !== undefined) {
+                document.getElementById('intensity').value = state.intensity;
+                document.getElementById('intensityValue').textContent = state.intensity;
+            }
+            
+            // Update music mode
+            if (state.music_mode !== undefined && state.music_mode !== null) {
+                document.getElementById('musicMode').value = state.music_mode;
+            }
+            
+            // Update mic sensitivity
+            if (state.mic_sensitivity !== undefined && state.mic_sensitivity !== null) {
+                document.getElementById('sensitivity').value = state.mic_sensitivity;
+                document.getElementById('sensitivityValue').textContent = state.mic_sensitivity;
+            }
+            
+            // Update mic scaling
+            if (state.mic_scaling !== undefined && state.mic_scaling !== null) {
+                document.getElementById('scaling').value = state.mic_scaling;
+                document.getElementById('scalingValue').textContent = state.mic_scaling;
+            }
+            
+            // Release flag
+            window.updatingUI = false;
+        }
+
+        // Create debounced versions of all commands
+        const debouncedBrightnessCommand = debounce(sendBrightnessCommand, 300);
+        const debouncedMicSensitivityCommand = debounce(sendMicSensitivityCommand, 300);
+
+        // Initialize slider value displays and attach event listeners
+        window.addEventListener('load', function() {
+            // Color picker change event
+            document.getElementById('colorPicker').addEventListener('input', function() {
+                updateColorPreview();
+            });
+            
+            // Color sliders
+            document.querySelectorAll('.color-slider').forEach(slider => {
+                slider.addEventListener('input', function() {
+                    const id = this.id;
+                    const value = this.value;
+                    document.getElementById(id + 'Value').textContent = value;
+                    updateColorFromSliders();
+                });
+                
+                slider.addEventListener('change', function() {
+                    if (!window.updatingUI) {
+                        debouncedColorCommand();
+                    }
+                });
+            });
+            
+            // Brightness and intensity sliders
+            document.getElementById('brightness').addEventListener('input', function() {
+                document.getElementById('brightnessValue').textContent = this.value;
+            });
+            
+            document.getElementById('intensity').addEventListener('input', function() {
+                document.getElementById('intensityValue').textContent = this.value;
+            });
+            
+            document.querySelectorAll('.control-slider').forEach(slider => {
+                slider.addEventListener('change', function() {
+                    if (!window.updatingUI) {
+                        if (this.id === 'brightness' || this.id === 'intensity') {
+                            debouncedBrightnessCommand();
+                        } else if (this.id === 'sensitivity' || this.id === 'scaling') {
+                            debouncedMicSensitivityCommand();
+                        }
+                    }
+                });
+                
+                slider.addEventListener('input', function() {
+                    document.getElementById(this.id + 'Value').textContent = this.value;
+                });
+            });
+            
+            // Music mode select
+            document.getElementById('musicMode').addEventListener('change', function() {
+                if (!window.updatingUI) {
+                    sendMusicModeCommand();
+                }
+            });
+            
+            // Initialize WebSocket connection
+            initWebSocket();
+            
+            // Use a timer to check for disconnects and auto-reconnect
+            setInterval(() => {
+                if (socket && socket.readyState === WebSocket.CLOSED) {
+                    console.log("WebSocket connection lost, attempting to reconnect...");
+                    initWebSocket();
+                }
+            }, 5000);
+        });
+
+        // Handle page unload to close connection gracefully
+        window.addEventListener('beforeunload', function() {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.close();
+            }
         });
     </script>
 </body>
