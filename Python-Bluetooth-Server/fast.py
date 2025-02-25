@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, HTTPException, Query
+from fastapi import FastAPI, WebSocket, HTTPException, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from bleak import BleakClient
@@ -86,7 +86,7 @@ class LEDController:
             raise ConnectionError(f"Failed to connect to {self.device_address}: {str(e)}")
     
     async def disconnect(self):
-        if self.client and self.client.is_connected:
+        if self.client and await self.is_connected():
             try:
                 await self.client.disconnect()
                 self.state.connected = False
@@ -96,7 +96,22 @@ class LEDController:
                 print(f"Error while disconnecting from {self.device_address}: {e}")
     
     async def is_connected(self):
-        connected = self.client and self.client.is_connected
+        """Check if the client is connected and return a boolean"""
+        if self.client is None:
+            return False
+        
+        # Use the property if available, otherwise call the method
+        try:
+            # For newer versions of Bleak
+            if hasattr(self.client, "is_connected") and isinstance(self.client.is_connected, bool):
+                connected = self.client.is_connected
+            else:
+                # For older versions, convert the result to a boolean
+                connected = bool(await self.client.is_connected())
+        except Exception as e:
+            print(f"Error checking connection status: {e}")
+            connected = False
+        
         self.state.connected = connected
         return connected
     
@@ -169,7 +184,7 @@ class LEDController:
         sensitivity: 41-255 (29-FF hex)
         scaling: 0-15 (0-F hex)
         """
-        command = bytes.fromhex(f'5A090101{sensitivity:02X}{scaling:02X}')
+        command = bytes.fromhex(f'5A0901{sensitivity:02X}{scaling:02X}')
         await self._write_command(command)
         self.state.mic_sensitivity = sensitivity
         self.state.mic_scaling = scaling
@@ -233,8 +248,11 @@ ws_clients = set()
 
 @app.get("/", response_class=HTMLResponse)
 async def get_html():
-    with open("index.html", "r") as f:
-        return HTMLResponse(f.read())
+    try:
+        with open("index.html", "r") as f:
+            return HTMLResponse(f.read())
+    except FileNotFoundError:
+        return HTMLResponse("<html><body><h1>LED Controller API</h1><p>API documentation available at <a href='/docs'>/docs</a></p></body></html>")
 
 # REST API endpoints
 @app.get("/api/devices", summary="Get all devices")
@@ -419,21 +437,24 @@ async def mic_sensitivity_control(command: MicSensitivityCommand):
 async def broadcast_state_update(device_address: str):
     """Broadcast device state updates to all connected WebSocket clients"""
     if device_address in controllers:
-        state_update = {
-            "type": "state_update",
-            "device_address": device_address,
-            "state": controllers[device_address].get_state()
-        }
-        
-        # Convert to JSON string
-        message = json.dumps(state_update)
-        
-        # Broadcast to all connected clients
-        for ws in ws_clients:
-            try:
-                await ws.send_text(message)
-            except Exception as e:
-                print(f"Error broadcasting state update: {e}")
+        try:
+            state_update = {
+                "type": "state_update",
+                "device_address": device_address,
+                "state": controllers[device_address].get_state()
+            }
+            
+            # Convert to JSON string
+            message = json.dumps(state_update)
+            
+            # Broadcast to all connected clients
+            for ws in ws_clients:
+                try:
+                    await ws.send_text(message)
+                except Exception as e:
+                    print(f"Error broadcasting state update: {e}")
+        except Exception as e:
+            print(f"Error preparing state update: {e}")
 
 # WebSocket endpoint
 @app.websocket("/ws")
@@ -445,127 +466,189 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         # Send initial state for all devices
         for addr, controller in controllers.items():
-            await websocket.send_text(json.dumps({
-                "type": "state_update",
-                "device_address": addr,
-                "state": controller.get_state()
-            }))
+            try:
+                await websocket.send_text(json.dumps({
+                    "type": "state_update",
+                    "device_address": addr,
+                    "state": controller.get_state()
+                }))
+            except Exception as e:
+                print(f"Error sending initial state for {addr}: {e}")
         
+        # Main message loop
         while True:
-            data = await websocket.receive_text()
-            command = json.loads(data)
-            
-            device_address = command.get('device_address')
-            action = command.get('action')
-            
-            if not device_address:
-                await websocket.send_text(json.dumps({
-                    "status": "error",
-                    "message": "Missing device address in command"
-                }))
-                continue
-            
             try:
-                controller = await get_controller(device_address)
-            except Exception as e:
-                await websocket.send_text(json.dumps({
-                    "status": "error",
-                    "message": f"Failed to connect to {device_address}: {str(e)}"
-                }))
-                continue  # Skip to next iteration if connection fails
-            
-            try:
-                response_data = {"status": "success"}
+                # Use a timeout to prevent blocking indefinitely if client disconnects
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=30.0)
                 
-                if action == 'power':
-                    if command['state'] == 'on':
-                        await controller.turn_on()
-                        response_data["message"] = "Power turned on"
-                    else:
-                        await controller.turn_off()
-                        response_data["message"] = "Power turned off"
-                        
-                elif action == 'color':
-                    await controller.set_color(
-                        int(command['red']),
-                        int(command['green']),
-                        int(command['blue'])
-                    )
-                    response_data["message"] = f"Color set to RGB({command['red']}, {command['green']}, {command['blue']})"
-                    
-                elif action == 'brightness':
-                    await controller.set_brightness(
-                        int(command['brightness']),
-                        int(command['intensity'])
-                    )
-                    response_data["message"] = f"Brightness set to {command['brightness']}, intensity {command['intensity']}"
-                    
-                elif action == 'music_mode':
-                    await controller.set_music_mode(int(command['mode']))
-                    response_data["message"] = f"Music mode set to {command['mode']}"
-                    
-                elif action == 'mic_sensitivity':
-                    await controller.set_mic_sensitivity(
-                        int(command['sensitivity']),
-                        int(command['scaling'])
-                    )
-                    response_data["message"] = f"Mic sensitivity set to {command['sensitivity']}, scaling {command['scaling']}"
-                
-                # Add state to response
-                response_data["state"] = controller.get_state()
-                    
-                await websocket.send_text(json.dumps(response_data))
-                
-                # Broadcast state update to all other clients
-                for ws in ws_clients:
-                    if ws != websocket:  # Skip the client that sent the command
-                        try:
-                            await ws.send_text(json.dumps({
-                                "type": "state_update",
-                                "device_address": device_address,
-                                "state": controller.get_state()
-                            }))
-                        except Exception:
-                            pass
-                
-            except Exception as e:
-                print(f"Error executing command {action}: {e}")
-                # Try to reconnect if it's a connection error
-                if "Not connected" in str(e) or "Failed to communicate" in str(e):
-                    try:
-                        await controller.disconnect()
-                        await controller.connect()
-                        # Retry the command after reconnection
-                        await websocket.send_text(json.dumps({
-                            "status": "retry",
-                            "message": "Connection re-established, please retry your command"
-                        }))
-                    except Exception as reconnect_error:
-                        await websocket.send_text(json.dumps({
-                            "status": "error",
-                            "message": f"Reconnection failed: {str(reconnect_error)}"
-                        }))
-                else:
-                    # For non-connection errors, just report the error
+                # Process the received data
+                try:
+                    command = json.loads(data)
+                except json.JSONDecodeError:
                     await websocket.send_text(json.dumps({
                         "status": "error",
-                        "message": str(e)
+                        "message": "Invalid JSON format"
                     }))
+                    continue
+                
+                device_address = command.get('device_address')
+                action = command.get('action')
+                
+                if not device_address:
+                    await websocket.send_text(json.dumps({
+                        "status": "error",
+                        "message": "Missing device address in command"
+                    }))
+                    continue
+                
+                try:
+                    controller = await get_controller(device_address)
+                except Exception as e:
+                    await websocket.send_text(json.dumps({
+                        "status": "error",
+                        "message": f"Failed to connect to {device_address}: {str(e)}"
+                    }))
+                    continue  # Skip to next iteration if connection fails
+                
+                try:
+                    response_data = {"status": "success"}
+                    
+                    if action == 'power':
+                        if command['state'] == 'on':
+                            await controller.turn_on()
+                            response_data["message"] = "Power turned on"
+                        else:
+                            await controller.turn_off()
+                            response_data["message"] = "Power turned off"
+                            
+                    elif action == 'color':
+                        await controller.set_color(
+                            int(command['red']),
+                            int(command['green']),
+                            int(command['blue'])
+                        )
+                        response_data["message"] = f"Color set to RGB({command['red']}, {command['green']}, {command['blue']})"
+                        
+                    elif action == 'brightness':
+                        await controller.set_brightness(
+                            int(command['brightness']),
+                            int(command['intensity'])
+                        )
+                        response_data["message"] = f"Brightness set to {command['brightness']}, intensity {command['intensity']}"
+                        
+                    elif action == 'music_mode':
+                        await controller.set_music_mode(int(command['mode']))
+                        response_data["message"] = f"Music mode set to {command['mode']}"
+                        
+                    elif action == 'mic_sensitivity':
+                        await controller.set_mic_sensitivity(
+                            int(command['sensitivity']),
+                            int(command['scaling'])
+                        )
+                        response_data["message"] = f"Mic sensitivity set to {command['sensitivity']}, scaling {command['scaling']}"
+                    
+                    # Add state to response
+                    response_data["state"] = controller.get_state()
+                    
+                    # Use try-except for sending response in case the client disconnected
+                    try:
+                        await websocket.send_text(json.dumps(response_data))
+                    except Exception as send_error:
+                        print(f"Error sending response: {send_error}")
+                        break  # Exit the loop if we can't send
+                    
+                    # Broadcast state update to all other clients
+                    for ws in ws_clients:
+                        if ws != websocket:  # Skip the client that sent the command
+                            try:
+                                await ws.send_text(json.dumps({
+                                    "type": "state_update",
+                                    "device_address": device_address,
+                                    "state": controller.get_state()
+                                }))
+                            except Exception:
+                                # Just skip if we can't send to this client
+                                pass
+                    
+                except Exception as e:
+                    print(f"Error executing command {action}: {e}")
+                    # Try to reconnect if it's a connection error
+                    if "Not connected" in str(e) or "Failed to communicate" in str(e):
+                        try:
+                            await controller.disconnect()
+                            await controller.connect()
+                            # Retry the command after reconnection
+                            try:
+                                await websocket.send_text(json.dumps({
+                                    "status": "retry",
+                                    "message": "Connection re-established, please retry your command"
+                                }))
+                            except Exception:
+                                # If we can't send, the client probably disconnected
+                                break
+                        except Exception as reconnect_error:
+                            try:
+                                await websocket.send_text(json.dumps({
+                                    "status": "error",
+                                    "message": f"Reconnection failed: {str(reconnect_error)}"
+                                }))
+                            except Exception:
+                                break
+                    else:
+                        # For non-connection errors, just report the error
+                        try:
+                            await websocket.send_text(json.dumps({
+                                "status": "error",
+                                "message": str(e)
+                            }))
+                        except Exception:
+                            break
+                
+            except asyncio.TimeoutError:
+                # Send a ping to check if connection is still alive
+                try:
+                    await websocket.send_text(json.dumps({"type": "ping"}))
+                except Exception:
+                    # Connection is probably closed
+                    print("WebSocket ping failed, client probably disconnected")
+                    break
+            
+            except WebSocketDisconnect:
+                # Client disconnected normally
+                print("WebSocket client disconnected")
+                break
+                
+            except Exception as e:
+                # Any other error during receive_text()
+                print(f"Error processing WebSocket message: {e}")
+                break
                 
     except Exception as e:
         print(f"WebSocket error: {e}")
+    
     finally:
-        # Remove client from set
-        ws_clients.remove(websocket)
+        # Always clean up properly
+        if websocket in ws_clients:
+            ws_clients.remove(websocket)
+        print("WebSocket connection closed and cleaned up")
+
+async def broadcast_other_clients(current_websocket: WebSocket, device_address: str, controller: LEDController):
+    """Broadcast state update to all clients except the current one"""
+    try:
+        message = json.dumps({
+            "type": "state_update",
+            "device_address": device_address,
+            "state": controller.get_state()
+        })
         
-        # Only attempt to disconnect if device_address is defined and in controllers
-        if device_address and device_address in controllers:
-            try:
-                # Don't disconnect the device when a client disconnects
-                # We just keep the connection for other clients
-                pass
-            except Exception as e:
-                print(f"Error while disconnecting from {device_address}: {e}")
+        for ws in ws_clients:
+            if ws != current_websocket:  # Skip the client that sent the command
+                try:
+                    await ws.send_text(message)
+                except Exception:
+                    pass
+    except Exception as e:
+        print(f"Error broadcasting to other clients: {e}")
 
 @app.on_event("shutdown")
 async def shutdown_event():
