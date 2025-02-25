@@ -1,33 +1,96 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LED Controller</title>
     <style>
+        :root {
+            /* Light theme variables */
+            --bg-color: #f5f5f5;
+            --container-bg: #ffffff;
+            --text-color: #333333;
+            --control-bg: #fafafa;
+            --control-border: #dddddd;
+            --slider-bg: #e0e0e0;
+            --slider-thumb: #007bff;
+            --button-primary: #007bff;
+            --button-primary-hover: #0056b3;
+            --button-success: #28a745;
+            --button-success-hover: #218838;
+            --button-danger: #dc3545;
+            --button-danger-hover: #bd2130;
+            --status-info-bg: #d1ecf1;
+            --status-info-color: #0c5460;
+            --status-success-bg: #d4edda;
+            --status-success-color: #155724;
+            --status-warning-bg: #fff3cd;
+            --status-warning-color: #856404;
+            --status-error-bg: #f8d7da;
+            --status-error-color: #721c24;
+            --input-bg: #ffffff;
+            --input-border: #cccccc;
+            --input-color: #333333;
+            --shadow-color: rgba(0,0,0,0.1);
+        }
+
+        [data-theme="dark"] {
+            /* Dark theme variables */
+            --bg-color: #121212;
+            --container-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --control-bg: #2d2d2d;
+            --control-border: #3d3d3d;
+            --slider-bg: #3d3d3d;
+            --slider-thumb: #0d6efd;
+            --button-primary: #0d6efd;
+            --button-primary-hover: #0b5ed7;
+            --button-success: #198754;
+            --button-success-hover: #157347;
+            --button-danger: #dc3545;
+            --button-danger-hover: #bb2d3b;
+            --status-info-bg: #0d3b48;
+            --status-info-color: #79dae8;
+            --status-success-bg: #0a3622;
+            --status-success-color: #75e0a7;
+            --status-warning-bg: #332701;
+            --status-warning-color: #ffda6a;
+            --status-error-bg: #350c0f;
+            --status-error-color: #ea868f;
+            --input-bg: #2d2d2d;
+            --input-border: #3d3d3d;
+            --input-color: #e0e0e0;
+            --shadow-color: rgba(0,0,0,0.5);
+        }
+
         body {
             font-family: Arial, sans-serif;
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #f5f5f5;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
         }
         .container {
-            background-color: white;
+            background-color: var(--container-bg);
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px var(--shadow-color);
+            transition: background-color 0.3s, box-shadow 0.3s;
         }
         .control-group {
             margin-bottom: 20px;
             padding: 15px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--control-border);
             border-radius: 5px;
-            background-color: #fafafa;
+            background-color: var(--control-bg);
+            transition: background-color 0.3s, border-color 0.3s;
         }
         .control-group h2 {
             margin-top: 0;
-            color: #333;
+            color: var(--text-color);
+            transition: color 0.3s;
         }
         .slider-container {
             display: flex;
@@ -37,6 +100,28 @@
         }
         input[type="range"] {
             flex-grow: 1;
+            -webkit-appearance: none;
+            height: 8px;
+            background-color: var(--slider-bg);
+            border-radius: 4px;
+            outline: none;
+            transition: background-color 0.3s;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background-color: var(--slider-thumb);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background-color: var(--slider-thumb);
+            border-radius: 50%;
+            cursor: pointer;
         }
         .color-picker {
             display: flex;
@@ -48,7 +133,7 @@
             padding: 10px 15px;
             border: none;
             border-radius: 5px;
-            background-color: #007bff;
+            background-color: var(--button-primary);
             color: white;
             cursor: pointer;
             transition: background-color 0.2s;
@@ -56,41 +141,42 @@
             margin-bottom: 5px;
         }
         button:hover {
-            background-color: #0056b3;
+            background-color: var(--button-primary-hover);
         }
         button.danger {
-            background-color: #dc3545;
+            background-color: var(--button-danger);
         }
         button.danger:hover {
-            background-color: #bd2130;
+            background-color: var(--button-danger-hover);
         }
         button.success {
-            background-color: #28a745;
+            background-color: var(--button-success);
         }
         button.success:hover {
-            background-color: #218838;
+            background-color: var(--button-success-hover);
         }
         #status {
             margin-top: 20px;
             padding: 10px;
             border-radius: 5px;
             min-height: 20px;
+            transition: background-color 0.3s, color 0.3s;
         }
         .success {
-            background-color: #d4edda;
-            color: #155724;
+            background-color: var(--status-success-bg);
+            color: var(--status-success-color);
         }
         .error {
-            background-color: #f8d7da;
-            color: #721c24;
+            background-color: var(--status-error-bg);
+            color: var(--status-error-color);
         }
         .warning {
-            background-color: #fff3cd;
-            color: #856404;
+            background-color: var(--status-warning-bg);
+            color: var(--status-warning-color);
         }
         .info {
-            background-color: #d1ecf1;
-            color: #0c5460;
+            background-color: var(--status-info-bg);
+            color: var(--status-info-color);
         }
         .controls {
             display: flex;
@@ -101,7 +187,8 @@
             width: 30px;
             height: 30px;
             border-radius: 5px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--control-border);
+            transition: border-color 0.3s;
         }
         .header {
             margin-bottom: 20px;
@@ -114,18 +201,81 @@
             padding: 5px 10px;
             border-radius: 15px;
             display: inline-block;
+            transition: background-color 0.3s, color 0.3s;
         }
         .connected {
-            background-color: #d4edda;
-            color: #155724;
+            background-color: var(--status-success-bg);
+            color: var(--status-success-color);
         }
         .disconnected {
-            background-color: #f8d7da;
-            color: #721c24;
+            background-color: var(--status-error-bg);
+            color: var(--status-error-color);
         }
         .connecting {
-            background-color: #fff3cd;
-            color: #856404;
+            background-color: var(--status-warning-bg);
+            color: var(--status-warning-color);
+        }
+        input[type="text"], select {
+            background-color: var(--input-bg);
+            color: var(--input-color);
+            border: 1px solid var(--input-border);
+            border-radius: 4px;
+            padding: 8px;
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+        select {
+            cursor: pointer;
+        }
+        .theme-switch {
+            display: flex;
+            align-items: center;
+            margin-left: 10px;
+        }
+        .theme-toggle {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        .theme-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--slider-bg);
+            transition: 0.4s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: var(--button-primary);
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        .theme-icons {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 8px;
+            font-size: 14px;
         }
     </style>
 </head>
@@ -133,13 +283,25 @@
     <div class="container">
         <div class="header">
             <h1>LED Strip Controller</h1>
-            <div id="connection-status" class="connection-status disconnected">Disconnected</div>
+            <div style="display: flex; align-items: center;">
+                <div id="connection-status" class="connection-status disconnected">Disconnected</div>
+                <div class="theme-switch">
+                    <label class="theme-toggle">
+                        <input type="checkbox" id="theme-toggle">
+                        <span class="slider"></span>
+                    </label>
+                    <div class="theme-icons">
+                        <span>🌞</span>
+                        <span>🌙</span>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <div class="control-group">
             <h2>Device Address</h2>
             <div class="slider-container">
-                <input type="text" id="deviceAddress" placeholder="Device Address" value="08:14:13:05:3B:A0" style="flex-grow: 1; padding: 5px;">
+                <input type="text" id="deviceAddress" placeholder="Device Address" value="08:14:13:05:3B:A0" style="flex-grow: 1;">
             </div>
         </div>
 
@@ -192,7 +354,7 @@
         <div class="control-group">
             <h2>Music Mode</h2>
             <div class="slider-container">
-                <select id="musicMode" style="padding: 5px; flex-grow: 1;">
+                <select id="musicMode" style="flex-grow: 1;">
                     <option value="1">Classic Mode</option>
                     <option value="2">Vocal Mode</option>
                     <option value="3">Pop Mode</option>
@@ -219,6 +381,27 @@
     </div>
 
     <script>
+        // Theme management
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            document.getElementById('theme-toggle').checked = (theme === 'light');
+        }
+
+        function initTheme() {
+            // Check for saved theme preference or use system preference
+            const savedTheme = localStorage.getItem('theme');
+            
+            if (savedTheme) {
+                // Use saved preference
+                setTheme(savedTheme);
+            } else {
+                // Check system preference
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                setTheme(prefersDark ? 'dark' : 'light');
+            }
+        }
+
         // WebSocket connection
         let socket = null;
         let reconnectAttempts = 0;
@@ -577,6 +760,23 @@
 
         // Initialize slider value displays and attach event listeners
         window.addEventListener('load', function() {
+            // Initialize theme
+            initTheme();
+            
+            // Theme toggle event listener
+            document.getElementById('theme-toggle').addEventListener('change', function() {
+                const theme = this.checked ? 'light' : 'dark';
+                setTheme(theme);
+            });
+            
+            // Listen for system theme changes
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+                if (!localStorage.getItem('theme')) {
+                    // Only change if user hasn't set a preference
+                    setTheme(e.matches ? 'dark' : 'light');
+                }
+            });
+            
             // Color picker change event
             document.getElementById('colorPicker').addEventListener('input', function() {
                 updateColorPreview();
@@ -627,6 +827,18 @@
             document.getElementById('musicMode').addEventListener('change', function() {
                 if (!window.updatingUI) {
                     sendMusicModeCommand();
+                }
+            });
+            
+            // Device address change
+            document.getElementById('deviceAddress').addEventListener('change', function() {
+                // When device address changes, try to get its status
+                const deviceAddress = getDeviceAddress();
+                if (deviceAddress && socket && socket.readyState === WebSocket.OPEN) {
+                    sendWebSocketMessage({
+                        action: 'get_status',
+                        device_address: deviceAddress
+                    });
                 }
             });
             
