@@ -1,9 +1,9 @@
 {
   "name": "homebridge-ledstrip-controller-restapi",
-  "displayName": "homebridge-ledstrip-controller-restapi",
+  "displayName": "Homebridge LED Strip Controller REST API",
   "type": "module",
-  "version": "1.0.5",
-  "description": "A Plugin to control LED strip from rest API as backend is using fastAPI and Bleak to communicate with the bluetooth device.",
+  "version": "2.0.0",
+  "description": "A Homebridge plugin to control LED strips via WebSocket and REST API with support for advanced features like music modes",
   "author": "Harshal Panpaliya",
   "license": "Apache-2.0",
   "homepage": "https://github.com/hppanpaliya/homebridge-ledstrip-controller-restapi#readme",
@@ -15,7 +15,13 @@
     "url": "https://github.com/hppanpaliya/homebridge-ledstrip-controller-restapi/issues"
   },
   "keywords": [
-    "homebridge-plugin"
+    "homebridge-plugin",
+    "led",
+    "strip",
+    "controller",
+    "rgb",
+    "bluetooth",
+    "music"
   ],
   "main": "dist/index.js",
   "engines": {
@@ -43,7 +49,6 @@
     "typescript-eslint": "^8.12.2"
   },
   "dependencies": {
-    "homebridge-lib": "^7.1.0",
     "ws": "^8.18.0"
   }
 }

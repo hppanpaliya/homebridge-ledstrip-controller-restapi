@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LED Controller</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .control-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .control-group h2 {
+            margin-top: 0;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        input[type="range"] {
+            flex-grow: 1;
+        }
+        .color-picker {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>LED Strip Controller</h1>
+        
+        <div class="control-group">
+            <h2>Connection</h2>
+            <input type="text" id="deviceAddress" placeholder="Device Address" value="08:14:13:05:3B:A0">
+        </div>
+
+        <div class="control-group">
+            <h2>Power Control</h2>
+            <button onclick="sendCommand('power', true)">Turn On</button>
+            <button onclick="sendCommand('power', false)">Turn Off</button>
+        </div>
+
+        <div class="control-group">
+            <h2>Color Control</h2>
+            <div class="color-picker">
+                <label>Color: </label>
+                <input type="color" id="colorPicker" onchange="updateColor()">
+                <button onclick="sendColorCommand()">Set Color</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h2>Brightness Control</h2>
+            <div class="slider-container">
+                <label>Brightness:</label>
+                <input type="range" id="brightness" min="0" max="255" value="128">
+                <span id="brightnessValue">128</span>
+            </div>
+            <div class="slider-container">
+                <label>Intensity:</label>
+                <input type="range" id="intensity" min="0" max="15" value="7">
+                <span id="intensityValue">7</span>
+            </div>
+            <button onclick="sendBrightnessCommand()">Set Brightness</button>
+        </div>
+
+        <div class="control-group">
+            <h2>Music Mode</h2>
+            <select id="musicMode">
+                <option value="1">Classic Mode</option>
+                <option value="2">Vocal Mode</option>
+                <option value="3">Pop Mode</option>
+                <option value="4">Rock Mode</option>
+            </select>
+            <button onclick="sendMusicModeCommand()">Set Mode</button>
+        </div>
+
+        <div class="control-group">
+            <h2>Microphone Sensitivity</h2>
+            <div class="slider-container">
+                <label>Sensitivity:</label>
+                <input type="range" id="sensitivity" min="41" max="255" value="148">
+                <span id="sensitivityValue">148</span>
+            </div>
+            <div class="slider-container">
+                <label>Scaling:</label>
+                <input type="range" id="scaling" min="0" max="15" value="7">
+                <span id="scalingValue">7</span>
+            </div>
+            <button onclick="sendMicSensitivityCommand()">Set Sensitivity</button>
+        </div>
+
+        <div id="status"></div>
+    </div>
+
+    <script>
+        let ws;
+        
+        function connect() {
+            ws = new WebSocket(`ws://${window.location.host}/ws`);
+            
+            ws.onmessage = function(event) {
+                const response = JSON.parse(event.data);
+                const status = document.getElementById('status');
+                status.textContent = response.message;
+                status.className = response.status === 'success' ? 'success' : 'error';
+            };
+
+            ws.onclose = function() {
+                setTimeout(connect, 1000);
+            };
+        }
+
+        connect();
+
+        function getDeviceAddress() {
+            return document.getElementById('deviceAddress').value;
+        }
+
+        function sendCommand(action, state) {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    device_address: getDeviceAddress(),
+                    action: action,
+                    state: state ? 'on' : 'off'
+                }));
+            }
+        }
+
+        function updateColor() {
+            const color = document.getElementById('colorPicker').value;
+            document.getElementById('colorPicker').style.backgroundColor = color;
+        }
+
+        function sendColorCommand() {
+            const color = document.getElementById('colorPicker').value;
+            const rgb = {
+                red: parseInt(color.substr(1,2), 16),
+                green: parseInt(color.substr(3,2), 16),
+                blue: parseInt(color.substr(5,2), 16)
+            };
+            
+            ws.send(JSON.stringify({
+                device_address: getDeviceAddress(),
+                action: 'color',
+                ...rgb
+            }));
+        }
+
+        function sendBrightnessCommand() {
+            ws.send(JSON.stringify({
+                device_address: getDeviceAddress(),
+                action: 'brightness',
+                brightness: parseInt(document.getElementById('brightness').value),
+                intensity: parseInt(document.getElementById('intensity').value)
+            }));
+        }
+
+        function sendMusicModeCommand() {
+            ws.send(JSON.stringify({
+                device_address: getDeviceAddress(),
+                action: 'music_mode',
+                mode: parseInt(document.getElementById('musicMode').value)
+            }));
+        }
+
+        function sendMicSensitivityCommand() {
+            ws.send(JSON.stringify({
+                device_address: getDeviceAddress(),
+                action: 'mic_sensitivity',
+                sensitivity: parseInt(document.getElementById('sensitivity').value),
+                scaling: parseInt(document.getElementById('scaling').value)
+            }));
+        }
+
+        // Update value displays for sliders
+        ['brightness', 'intensity', 'sensitivity', 'scaling'].forEach(id => {
+            const slider = document.getElementById(id);
+            const display = document.getElementById(id + 'Value');
+            slider.oninput = () => display.textContent = slider.value;
+        });
+    </script>
+</body>
+</html>

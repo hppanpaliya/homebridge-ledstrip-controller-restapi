@@ -134,3 +134,6 @@ web_modules/
 .pnp.*
 
 test/
+
+# Ignore Python Server files
+.Python-Bluetooth-Server/

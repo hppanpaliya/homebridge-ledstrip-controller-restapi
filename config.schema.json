@@ -34,8 +34,26 @@
               "title": "API WebSocket URL",
               "type": "string",
               "required": true,
-              "description": "WebSocket URL for the LED controller API",
-              "placeholder": "ws://localhost:8000/ws"
+              "description": "WebSocket URL for the LED controller API (without trailing slash)",
+              "placeholder": "ws://localhost:8000"
+            },
+            "enableMusicMode": {
+              "title": "Enable Music Mode",
+              "type": "boolean",
+              "default": false,
+              "description": "Add Music Mode controls to HomeKit"
+            },
+            "enableMicControls": {
+              "title": "Enable Microphone Controls",
+              "type": "boolean",
+              "default": false,
+              "description": "Add microphone sensitivity controls to HomeKit"
+            },
+            "reconnectInterval": {
+              "title": "Reconnect Interval (ms)",
+              "type": "integer",
+              "default": 5000,
+              "description": "Time to wait before reconnecting WebSocket after disconnection"
             }
           }
         }
