@@ -35,8 +35,8 @@ Configure the plugin through the Homebridge UI or add to your `config.json` manu
       "devices": [
         {
           "name": "Living Room LED Strip",
-          "deviceAddress": "74D41BB8-7A4D-E9E9-49DE-15392E17EBE1",
-          "apiUrl": "http://localhost:8000",
+          "deviceAddress": "08:14:13:05:3B:A1",
+          "apiUrl": "ws://192.168.0.225:8000",
           "enableMusicMode": true,
           "enableMicControls": true,
           "reconnectInterval": 5000
