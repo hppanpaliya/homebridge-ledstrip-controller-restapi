@@ -38,11 +38,13 @@ export class LEDStripAccessory {
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.deviceAddress)
       .setCharacteristic(this.platform.Characteristic.FirmwareRevision, FIRMWARE_VERSION);
 
-    // Create the lightbulb service
+    // Create the lightbulb service as the PRIMARY service
     this.lightbulbService = this.accessory.getService(this.platform.Service.Lightbulb) ||
-                          this.accessory.addService(this.platform.Service.Lightbulb);
+                          this.accessory.addService(this.platform.Service.Lightbulb, device.name, 'main-light');
     
     this.lightbulbService.setCharacteristic(this.platform.Characteristic.Name, device.name);
+    // Mark as primary service
+    this.lightbulbService.setPrimaryService(true);
 
     // Configure lightbulb characteristics
     this.lightbulbService.getCharacteristic(this.platform.Characteristic.On)
@@ -76,13 +78,23 @@ export class LEDStripAccessory {
    */
   private setupMusicMode(): void {
     // Create main music mode switch
-    this.musicModeService = this.accessory.getService('Music Mode') ||
-                          this.accessory.addService(this.platform.Service.Switch, 'Music Mode', 'music-mode');
+    const musicModeServiceName = 'Music Mode';
+    this.musicModeService = this.accessory.getService(musicModeServiceName) ||
+                          this.accessory.addService(this.platform.Service.Switch, musicModeServiceName, 'music-mode');
     
-    this.musicModeService.setCharacteristic(this.platform.Characteristic.Name, 'Music Mode');
+    this.musicModeService.setCharacteristic(this.platform.Characteristic.Name, musicModeServiceName);
+    
+    // If ConfiguredName characteristic exists (newer HomeKit versions)
+    if (this.platform.Characteristic.ConfiguredName) {
+      this.musicModeService.setCharacteristic(this.platform.Characteristic.ConfiguredName, musicModeServiceName);
+    }
+    
     this.musicModeService.getCharacteristic(this.platform.Characteristic.On)
       .onSet(this.setMusicModeEnabled.bind(this))
       .onGet(this.getMusicModeEnabled.bind(this));
+
+    // Link to primary service
+    this.lightbulbService.addLinkedService(this.musicModeService);
 
     // Create individual mode switches
     this.setupMusicModeSwitch(MusicMode.CLASSIC, 'Classic Mode');
@@ -95,14 +107,25 @@ export class LEDStripAccessory {
    * Setup individual music mode switch
    */
   private setupMusicModeSwitch(mode: MusicMode, name: string): void {
-    const uuid = `${this.device.deviceAddress}-music-${mode}`;
+    const subtype = `music-mode-${mode}`;
     const service = this.accessory.getService(name) ||
-                  this.accessory.addService(this.platform.Service.Switch, name, uuid);
+                  this.accessory.addService(this.platform.Service.Switch, name, subtype);
     
     service.setCharacteristic(this.platform.Characteristic.Name, name);
+    
+    // Set ConfiguredName if available
+    if (this.platform.Characteristic.ConfiguredName) {
+      service.setCharacteristic(this.platform.Characteristic.ConfiguredName, name);
+    }
+    
     service.getCharacteristic(this.platform.Characteristic.On)
       .onSet((value) => this.setMusicMode(mode, value as boolean))
       .onGet(() => this.getMusicMode(mode));
+    
+    // Link to the main music mode service
+    if (this.musicModeService) {
+      this.musicModeService.addLinkedService(service);
+    }
     
     this.musicModeSwitches.set(mode, service);
   }
@@ -112,10 +135,17 @@ export class LEDStripAccessory {
    */
   private setupMicControls(): void {
     // Create mic sensitivity service (using Lightbulb service with brightness)
-    this.micSensitivityService = this.accessory.getService('Mic Sensitivity') ||
-                                this.accessory.addService(this.platform.Service.Lightbulb, 'Mic Sensitivity', 'mic-sensitivity');
+    const micSensitivityName = 'Mic Sensitivity';
+    this.micSensitivityService = this.accessory.getService(micSensitivityName) ||
+                                this.accessory.addService(this.platform.Service.Lightbulb, micSensitivityName, 'mic-sensitivity');
     
-    this.micSensitivityService.setCharacteristic(this.platform.Characteristic.Name, 'Mic Sensitivity');
+    this.micSensitivityService.setCharacteristic(this.platform.Characteristic.Name, micSensitivityName);
+    
+    // Set ConfiguredName if available
+    if (this.platform.Characteristic.ConfiguredName) {
+      this.micSensitivityService.setCharacteristic(this.platform.Characteristic.ConfiguredName, micSensitivityName);
+    }
+    
     this.micSensitivityService.getCharacteristic(this.platform.Characteristic.On)
       .onSet(this.setMicSensitivityEnabled.bind(this))
       .onGet(this.getMicSensitivityEnabled.bind(this));
@@ -124,11 +154,21 @@ export class LEDStripAccessory {
       .onSet(this.setMicSensitivity.bind(this))
       .onGet(this.getMicSensitivity.bind(this));
 
+    // Link to primary service
+    this.lightbulbService.addLinkedService(this.micSensitivityService);
+
     // Create mic scaling service (using Lightbulb service with brightness)
-    this.micScalingService = this.accessory.getService('Mic Scaling') ||
-                            this.accessory.addService(this.platform.Service.Lightbulb, 'Mic Scaling', 'mic-scaling');
+    const micScalingName = 'Mic Scaling';
+    this.micScalingService = this.accessory.getService(micScalingName) ||
+                            this.accessory.addService(this.platform.Service.Lightbulb, micScalingName, 'mic-scaling');
     
-    this.micScalingService.setCharacteristic(this.platform.Characteristic.Name, 'Mic Scaling');
+    this.micScalingService.setCharacteristic(this.platform.Characteristic.Name, micScalingName);
+    
+    // Set ConfiguredName if available
+    if (this.platform.Characteristic.ConfiguredName) {
+      this.micScalingService.setCharacteristic(this.platform.Characteristic.ConfiguredName, micScalingName);
+    }
+    
     this.micScalingService.getCharacteristic(this.platform.Characteristic.On)
       .onSet(this.setMicScalingEnabled.bind(this))
       .onGet(this.getMicScalingEnabled.bind(this));
@@ -136,6 +176,9 @@ export class LEDStripAccessory {
     this.micScalingService.getCharacteristic(this.platform.Characteristic.Brightness)
       .onSet(this.setMicScaling.bind(this))
       .onGet(this.getMicScaling.bind(this));
+
+    // Link to primary service
+    this.lightbulbService.addLinkedService(this.micScalingService);
   }
 
   /**
