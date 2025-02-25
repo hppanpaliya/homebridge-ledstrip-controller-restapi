@@ -32,6 +32,8 @@
             --input-border: #cccccc;
             --input-color: #333333;
             --shadow-color: rgba(0,0,0,0.1);
+            --power-on-color: #28a745;
+            --power-off-color: #dc3545;
         }
 
         [data-theme="dark"] {
@@ -61,6 +63,8 @@
             --input-border: #3d3d3d;
             --input-color: #e0e0e0;
             --shadow-color: rgba(0,0,0,0.5);
+            --power-on-color: #198754;
+            --power-off-color: #dc3545;
         }
 
         body {
@@ -277,6 +281,42 @@
             margin-left: 8px;
             font-size: 14px;
         }
+        .power-status {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .power-indicator {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 10px;
+            transition: background-color 0.3s;
+        }
+        .power-on .power-indicator {
+            background-color: var(--power-on-color);
+            box-shadow: 0 0 8px var(--power-on-color);
+        }
+        .power-off .power-indicator {
+            background-color: var(--power-off-color);
+            box-shadow: none;
+        }
+        .power-text {
+            font-weight: bold;
+        }
+        .power-on .power-text {
+            color: var(--power-on-color);
+        }
+        .power-off .power-text {
+            color: var(--power-off-color);
+        }
+        .control-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
@@ -306,7 +346,13 @@
         </div>
 
         <div class="control-group">
-            <h2>Power Control</h2>
+            <div class="control-header">
+                <h2>Power Control</h2>
+                <div id="power-status" class="power-status power-off">
+                    <span class="power-indicator"></span>
+                    <span class="power-text">OFF</span>
+                </div>
+            </div>
             <div class="controls">
                 <button onclick="sendPowerCommand(true)" class="success">Turn On</button>
                 <button onclick="sendPowerCommand(false)" class="danger">Turn Off</button>
@@ -399,6 +445,20 @@
                 // Check system preference
                 const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                 setTheme(prefersDark ? 'dark' : 'light');
+            }
+        }
+
+        // Power status update
+        function updatePowerStatus(isOn) {
+            const powerStatus = document.getElementById('power-status');
+            const powerText = powerStatus.querySelector('.power-text');
+            
+            if (isOn) {
+                powerStatus.className = 'power-status power-on';
+                powerText.textContent = 'ON';
+            } else {
+                powerStatus.className = 'power-status power-off';
+                powerText.textContent = 'OFF';
             }
         }
 
@@ -576,6 +636,9 @@
                 device_address: deviceAddress,
                 state: isOn ? 'on' : 'off'
             });
+            
+            // Optimistically update the power status
+            updatePowerStatus(isOn);
         }
 
         function updateColorPreview() {
@@ -701,6 +764,11 @@
             
             // Flag to prevent triggering changes while updating UI
             window.updatingUI = true;
+            
+            // Update power status
+            if (state.power !== undefined) {
+                updatePowerStatus(state.power);
+            }
             
             // Update color
             if (state.color) {
